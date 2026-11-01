@@ -264,6 +264,10 @@ h2 {
     margin-top: 1.25rem;
 }
 
+.auth-card form[hidden] {
+    display: none;
+}
+
 .auth-card label {
     color: var(--ui-ink);
     font-weight: 700;
