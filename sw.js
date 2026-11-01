@@ -1,4 +1,4 @@
-const CACHE_NAME = "komunikator-v2";
+const CACHE_NAME = "komunikator-v3";
 const APP_FILES = [
     "./",
     "./index.html",
