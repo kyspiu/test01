@@ -1,0 +1,19 @@
+{
+    "name": "Komunikator",
+    "short_name": "Komunikator",
+    "description": "Komunikator wspomagający wybieranie słów i wypowiedzi.",
+    "start_url": "./index.html",
+    "scope": "./",
+    "display": "standalone",
+    "background_color": "#f4f0e5",
+    "theme_color": "#a9c4a3",
+    "lang": "pl",
+    "icons": [
+        {
+            "src": "icon.png",
+            "sizes": "any",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logowanie — Mówik</title>
+    <link rel="icon" href="icon.png" type="image/x-icon">
+    <link rel="stylesheet" href="style.css">
+    <meta name="theme-color" content="#a9c4a3">
+</head>
+<body class="auth-page">
+    <main class="auth-card">
+        <p class="eyebrow">Mówik</p>
+        <h1 id="authHeading">Zaloguj się</h1>
+        <p id="authDescription" class="helper-text">Zaloguj się, aby otworzyć swoje dane.</p>
+        <form id="authForm">
+            <label for="authEmail">Adres e-mail</label>
+            <input id="authEmail" type="email" autocomplete="email" required>
+            <label id="passwordLabel" for="authPassword">Hasło</label>
+            <input id="authPassword" type="password" autocomplete="current-password" minlength="8" required>
+            <button id="authSubmit" class="auth-primary" type="submit">Zaloguj się</button>
+            <button id="passwordReset" class="auth-link" type="button">Nie pamiętam hasła</button>
+        </form>
+        <form id="passwordResetForm" hidden>
+            <label for="newPassword">Nowe hasło (minimum 8 znaków)</label>
+            <input id="newPassword" type="password" autocomplete="new-password" minlength="8" required>
+            <button class="auth-primary" type="submit">Zapisz nowe hasło</button>
+        </form>
+        <button id="authModeToggle" class="auth-link" type="button">Nie mam konta — utwórz konto</button>
+        <p id="authStatus" class="auth-status" role="status" aria-live="polite"></p>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js"></script>
+    <script src="auth.js"></script>
+</body>
+</html>

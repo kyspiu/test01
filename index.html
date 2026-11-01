@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mówik</title>
+    <link rel="icon" href="icon.png" type="image/x-icon">
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#a9c4a3">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+</head>
+<body>
+    <div id="appShell" hidden>
+    <div class="container">
+        <div class="account-toolbar">
+            <span id="accountEmail"></span>
+            <button id="signOutButton" type="button">Wyloguj</button>
+        </div>
+        <header class="sentence-composer" id="sentenceComposer" aria-label="Dodaj zdanie">
+            <div class="app-heading">
+                <div>
+                    <p class="eyebrow">Mówik</p>
+                    <h1>Twoje zdania</h1>
+                </div>
+                <span class="app-mark" aria-hidden="true">✦</span>
+            </div>
+            <div class="sentence-input-row" id="speechDisplay">
+                <input id="sentenceInput" type="text" maxlength="80" placeholder="dodaj zdanie" aria-label="Dodaj zdanie do listy" />
+                <button id="btnAddSentence" class="composer-button add-button" type="button" aria-label="Dodaj zdanie">✓</button>
+            </div>
+            <label class="special-sentence-toggle">
+                <input id="specialSentenceInput" type="checkbox" />
+                <span>Zdanie specjalne</span>
+            </label>
+        </header>
+
+        <section class="quick-responses" id="quickResponses" aria-label="Szybkie odpowiedzi">
+            <div class="quick-response" data-response="yes">
+                <button class="quick-response-play yes" type="button" aria-label="Odtwórz TAK">TAK</button>
+                <button class="quick-response-record" type="button" aria-label="Nagraj TAK">Nagraj</button>
+                <span class="quick-response-status" aria-live="polite"></span>
+            </div>
+            <div class="quick-response" data-response="no">
+                <button class="quick-response-play no" type="button" aria-label="Odtwórz NIE">NIE</button>
+                <button class="quick-response-record" type="button" aria-label="Nagraj NIE">Nagraj</button>
+                <span class="quick-response-status" aria-live="polite"></span>
+            </div>
+        </section>
+
+        <section class="reaction-section" id="reactions" aria-labelledby="reactionHeading">
+            <div class="list-heading">
+                <h2 id="reactionHeading">Reakcje</h2>
+            </div>
+            <div class="reaction-composer">
+                <input id="reactionInput" type="text" maxlength="80" placeholder="dodaj reakcję" aria-label="Dodaj reakcję do listy" />
+                <button id="btnAddReaction" class="composer-button add-button" type="button">Dodaj</button>
+            </div>
+            <div class="reaction-list" id="reactionList" role="list" aria-live="polite"></div>
+        </section>
+
+        <main id="sentenceSection">
+            <div class="list-heading">
+                <h2>Lista zdań</h2>
+                <span id="sentenceCount" class="sentence-count" aria-live="polite"></span>
+            </div>
+            <div class="sentence-list" id="sentenceList" aria-live="polite"></div>
+            <p id="appStatus" class="app-status" role="status" aria-live="polite"></p>
+        </main>
+
+        <section class="reaction-section value-section" id="numbers" aria-labelledby="numberHeading">
+            <div class="list-heading">
+                <h2 id="numberHeading">Liczby</h2>
+            </div>
+            <div class="reaction-composer">
+                <input id="numberInput" type="text" maxlength="80" placeholder="dodaj liczbę" aria-label="Dodaj liczbę do listy" />
+                <button id="btnAddNumber" class="composer-button add-button" type="button">Dodaj</button>
+            </div>
+            <div class="reaction-list value-list" id="numberList" role="list" aria-live="polite"></div>
+        </section>
+
+        <section class="reaction-section value-section" id="dates" aria-labelledby="dateHeading">
+            <div class="list-heading">
+                <h2 id="dateHeading">Daty</h2>
+            </div>
+            <div class="reaction-composer">
+                <input id="dateInput" type="text" maxlength="80" placeholder="dodaj datę" aria-label="Dodaj datę do listy" />
+                <button id="btnAddDate" class="composer-button add-button" type="button">Dodaj</button>
+            </div>
+            <div class="reaction-list value-list" id="dateList" role="list" aria-live="polite"></div>
+        </section>
+    </div>
+
+    <nav class="scroll-shortcuts" aria-label="Skróty nawigacyjne">
+        <button class="scroll-shortcuts-toggle" id="scrollShortcutsToggle" type="button"
+            aria-label="Zwiń skróty" aria-expanded="true" aria-controls="scrollShortcutLinks">
+            <span aria-hidden="true">&rsaquo;</span>
+        </button>
+        <div class="scroll-shortcut-links" id="scrollShortcutLinks">
+            <a href="#sentenceComposer">Dodaj zdanie</a>
+            <a href="#quickResponses">TAK / NIE</a>
+            <a href="#reactions">Reakcje</a>
+            <a href="#sentenceSection">Zdania</a>
+            <a href="#numbers">Liczby</a>
+            <a href="#dates">Daty</a>
+        </div>
+    </nav>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
