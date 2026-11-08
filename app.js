@@ -19,6 +19,7 @@ const QUICK_RESPONSE_IDS = {
 let currentUser = null;
 let activeRecording = null;
 let activeSentenceId = null;
+let recordingRequestPending = false;
 let editingItemId = null;
 let openSpecialSentenceId = null;
 let supportsSpecialWords = null;
@@ -1023,6 +1024,30 @@ function getRecordingItem(id) {
     || Object.values(state.quickResponses).find((item) => item.id === id);
 }
 
+function getRecordingErrorMessage(error) {
+  const permissionHelp = "Przeglądarka zablokowała dostęp do mikrofonu. Otwórz ustawienia uprawnień tej strony przy pasku adresu, ustaw Mikrofon na „Zezwalaj”, sprawdź też uprawnienia mikrofonu dla przeglądarki w ustawieniach urządzenia, a następnie odśwież stronę.";
+  const errorName = error && error.name;
+
+  if (errorName === "NotAllowedError" || errorName === "PermissionDeniedError" || errorName === "SecurityError") {
+    return permissionHelp;
+  }
+  if (errorName === "NotFoundError" || errorName === "DevicesNotFoundError") {
+    return "Nie znaleziono mikrofonu. Podłącz mikrofon lub wybierz dostępne urządzenie i spróbuj ponownie.";
+  }
+  if (errorName === "NotReadableError" || errorName === "TrackStartError") {
+    return "Nie można uruchomić mikrofonu. Sprawdź, czy nie używa go inna aplikacja i czy system zezwala przeglądarce na dostęp.";
+  }
+  if (errorName === "OverconstrainedError") {
+    return "Nie można skonfigurować mikrofonu na tym urządzeniu. Sprawdź ustawienia urządzenia i spróbuj ponownie.";
+  }
+  if (errorName === "NotSupportedError") {
+    return "Ta przeglądarka nie obsługuje formatu nagrywania audio wymaganego przez aplikację.";
+  }
+  return error && error.message
+    ? `Nie udało się uruchomić mikrofonu: ${error.message}`
+    : "Nie udało się uruchomić mikrofonu. Sprawdź ustawienia urządzenia i spróbuj ponownie.";
+}
+
 async function toggleRecording(sentence) {
   if (activeRecording && activeSentenceId === sentence.id) {
     activeRecording.stop();
@@ -1033,21 +1058,36 @@ async function toggleRecording(sentence) {
     stopActiveRecording();
   }
 
+  if (recordingRequestPending) {
+    return;
+  }
+
+  recordingRequestPending = true;
+  let stream;
   try {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
-      throw new Error("Nagrywanie audio nie jest obsługiwane w tej przeglądarce.");
+    if (window.isSecureContext === false) {
+      throw new Error("Nagrywanie wymaga bezpiecznego połączenia HTTPS. Otwórz aplikację przez adres zaczynający się od https://.");
     }
-    const stream = await navigator.mediaDevices.getUserMedia({
+    if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== "function") {
+      throw new Error("Ta przeglądarka nie obsługuje dostępu do mikrofonu. Otwórz Mówik w aktualnej wersji przeglądarki.");
+    }
+    if (typeof window.MediaRecorder !== "function") {
+      throw new Error("Ta przeglądarka nie obsługuje nagrywania audio. Otwórz Mówik w aktualnej wersji przeglądarki.");
+    }
+
+    showStatus("Oczekiwanie na dostęp do mikrofonu…");
+    stream = await navigator.mediaDevices.getUserMedia({
       audio: {
         echoCancellation: { ideal: false },
         noiseSuppression: { ideal: false },
         autoGainControl: { ideal: false }
       }
     });
+    recordingRequestPending = false;
     const chunks = [];
-    const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+    const mimeType = typeof MediaRecorder.isTypeSupported === "function" && MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
       ? "audio/webm;codecs=opus"
-      : MediaRecorder.isTypeSupported("audio/webm")
+      : typeof MediaRecorder.isTypeSupported === "function" && MediaRecorder.isTypeSupported("audio/webm")
         ? "audio/webm"
         : "";
     const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
@@ -1108,20 +1148,33 @@ async function toggleRecording(sentence) {
         showStatus("Nie udało się zapisać nowego nagrania. Poprzednie nagranie pozostało bez zmian.");
       } finally {
         stream.getTracks().forEach((track) => track.stop());
-        activeRecording = null;
-        activeSentenceId = null;
-        renderSentenceList();
-        renderReactionList();
-        renderNumberList();
-        renderDateList();
-        renderQuickResponses();
+        if (activeRecording === recorder) {
+          activeRecording = null;
+          activeSentenceId = null;
+          renderSentenceList();
+          renderReactionList();
+          renderNumberList();
+          renderDateList();
+          renderQuickResponses();
+        }
       }
     };
 
     recorder.start();
   } catch (error) {
     console.error("Nie udało się uruchomić mikrofonu:", error);
-    showStatus(error.message || "Włącz dostęp do mikrofonu, aby nagrać własny głos.");
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
+    }
+    activeRecording = null;
+    activeSentenceId = null;
+    recordingRequestPending = false;
+    renderSentenceList();
+    renderReactionList();
+    renderNumberList();
+    renderDateList();
+    renderQuickResponses();
+    showStatus(getRecordingErrorMessage(error));
   }
 }
 
