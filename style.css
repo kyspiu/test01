@@ -268,6 +268,14 @@ h2 {
     cursor: pointer;
 }
 
+.access-contact {
+    width: fit-content;
+    color: var(--ui-sage-dark);
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+}
+
 .access-status {
     color: #a32626;
 }

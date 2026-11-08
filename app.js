@@ -60,6 +60,7 @@ const appShell = document.getElementById("appShell");
 const accessGate = document.getElementById("accessGate");
 const accessHeading = document.getElementById("accessHeading");
 const accessMessage = document.getElementById("accessMessage");
+const accessContact = document.getElementById("accessContact");
 const accessStatus = document.getElementById("accessStatus");
 const accountEmail = document.getElementById("accountEmail");
 const signOutButton = document.getElementById("signOutButton");
@@ -176,13 +177,14 @@ function showStatus(message) {
   appStatus.textContent = message;
 }
 
-function showAccessGate(heading, message, canSignOut = false) {
+function showAccessGate(heading, message, canSignOut = false, showContact = false) {
   appShell.hidden = true;
   accessGate.hidden = false;
   accessHeading.textContent = heading;
   accessMessage.textContent = message;
   accessStatus.textContent = "";
   accessSignOutButton.hidden = !canSignOut;
+  accessContact.hidden = !showContact;
 }
 
 function createRecordingIndicator(label) {
@@ -1389,6 +1391,7 @@ async function recheckAccountAccess() {
       showAccessGate(
         "Konto zablokowane",
         "Konto zablokowane — skontaktuj się z administratorem.",
+        true,
         true
       );
     }
@@ -1443,6 +1446,7 @@ async function startAuthenticatedApp() {
     showAccessGate(
       "Konto zablokowane",
       "Konto zablokowane — skontaktuj się z administratorem.",
+      true,
       true
     );
     return;
