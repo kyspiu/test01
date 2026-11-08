@@ -1007,8 +1007,10 @@ main {
 
 @media (max-width: 560px) {
     .container {
+        min-height: 100vh;
         min-height: 100dvh;
-        padding: 1rem 0.65rem calc(5.5rem + env(safe-area-inset-bottom, 0px));
+        padding: max(0.75rem, env(safe-area-inset-top, 0px)) max(0.65rem, env(safe-area-inset-right, 0px))
+            calc(5.5rem + env(safe-area-inset-bottom, 0px)) max(0.65rem, env(safe-area-inset-left, 0px));
         gap: 1rem;
     }
 
@@ -1062,25 +1064,6 @@ main {
         min-width: 4.25rem;
     }
 
-    .sentence-row {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.55rem;
-    }
-
-    .sentence-content {
-        width: 100%;
-        align-items: flex-start;
-        flex-wrap: wrap;
-    }
-
-    .sentence-actions {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        width: 100%;
-        gap: 0.35rem;
-    }
-
     .quick-response {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
@@ -1105,13 +1088,9 @@ main {
         text-align: center;
     }
 
-    .sentence-action,
-    .sentence-action.record {
-        min-width: 0;
-        min-height: 2.75rem;
-        padding: 0.35rem 0.25rem;
-        font-size: 0.72rem;
-        letter-spacing: 0;
+    .sentence-options-toggle {
+        width: 2.75rem;
+        height: 2.75rem;
     }
 
     .app-mark {
@@ -1155,7 +1134,7 @@ main {
 
     .scroll-shortcut-links a {
         flex: 0 0 auto;
-        min-height: 2.6rem;
+        min-height: 2.75rem;
         padding: 0.35rem 0.55rem;
         white-space: nowrap;
     }
@@ -1180,6 +1159,154 @@ main {
 
     .auth-card {
         padding: 1.5rem 1.15rem;
+    }
+}
+
+@media (max-width: 760px) {
+    .sentence-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.55rem;
+    }
+
+    .sentence-content {
+        width: 100%;
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .sentence-actions {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        width: 100%;
+        gap: 0.35rem;
+    }
+
+    .sentence-action {
+        min-width: 0;
+        min-height: 2.75rem;
+        padding: 0.35rem 0.25rem;
+        font-size: 0.78rem;
+        letter-spacing: 0;
+    }
+}
+
+@media screen and (orientation: landscape) and (max-height: 600px) {
+    .container {
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding: max(0.5rem, env(safe-area-inset-top, 0px)) max(1rem, env(safe-area-inset-right, 0px))
+            calc(4.25rem + env(safe-area-inset-bottom, 0px)) max(1rem, env(safe-area-inset-left, 0px));
+        gap: 0.65rem;
+    }
+
+    .account-toolbar {
+        gap: 0.5rem;
+    }
+
+    .sentence-composer {
+        gap: 0.5rem;
+        padding: 0.7rem 0.9rem;
+    }
+
+    .app-heading {
+        align-items: center;
+    }
+
+    .app-mark {
+        width: 2.5rem;
+        height: 2.5rem;
+        font-size: 1.3rem;
+    }
+
+    .sentence-row {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .sentence-content {
+        width: auto;
+        flex-wrap: nowrap;
+    }
+
+    .sentence-actions {
+        display: flex;
+        width: auto;
+        flex: 0 0 auto;
+    }
+
+    .sentence-action {
+        min-width: 4rem;
+        min-height: 2.75rem;
+        padding: 0.35rem 0.45rem;
+        font-size: 0.78rem;
+    }
+
+    .reaction-list {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .value-list {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .scroll-shortcuts {
+        top: auto;
+        right: max(0.65rem, env(safe-area-inset-right, 0px));
+        bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+        left: max(0.65rem, env(safe-area-inset-left, 0px));
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        width: auto;
+        padding: 0.35rem;
+        transform: none;
+    }
+
+    .scroll-shortcuts-toggle {
+        flex: 0 0 2.75rem;
+        width: 2.75rem;
+        min-height: 2.75rem;
+    }
+
+    .scroll-shortcut-links {
+        display: flex;
+        flex: 1;
+        gap: 0.35rem;
+        min-width: 0;
+        max-height: none;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        scrollbar-width: none;
+    }
+
+    .scroll-shortcut-links::-webkit-scrollbar {
+        display: none;
+    }
+
+    .scroll-shortcut-links a {
+        flex: 0 0 auto;
+        min-height: 2.75rem;
+        padding: 0.35rem 0.55rem;
+        white-space: nowrap;
+    }
+
+    .scroll-shortcuts.is-collapsed {
+        gap: 0;
+        width: auto;
+    }
+
+    .scroll-shortcuts.is-collapsed .scroll-shortcut-links {
+        max-width: 0;
+        max-height: none;
+        opacity: 0;
+    }
+
+    .auth-page {
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding: max(0.5rem, env(safe-area-inset-top, 0px)) max(0.75rem, env(safe-area-inset-right, 0px))
+            max(0.5rem, env(safe-area-inset-bottom, 0px)) max(0.75rem, env(safe-area-inset-left, 0px));
     }
 }
 
