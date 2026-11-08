@@ -1372,28 +1372,20 @@ async function initializeUser(user) {
   await initializeDefaultReactions();
 }
 
-async function isAccountBlocked(user) {
-  const { data, error } = await supabaseClient
-    .from("account_access")
-    .select("is_blocked")
-    .eq("user_id", user.id)
-    .maybeSingle();
+async function isAccountBlocked() {
+  const { data, error } = await supabaseClient.rpc("current_user_is_blocked");
   if (error) throw error;
-  if (data === null) return false;
-  if (!data || typeof data !== "object") {
-    throw new Error("Status blokady konta jest niedostępny.");
-  }
-  if (typeof data.is_blocked !== "boolean") {
+  if (typeof data !== "boolean") {
     throw new Error("Status blokady konta ma nieprawidłowy format.");
   }
-  return data.is_blocked;
+  return data;
 }
 
 async function recheckAccountAccess() {
   if (!currentUser || accessCheckPending) return;
   accessCheckPending = true;
   try {
-    if (await isAccountBlocked(currentUser)) {
+    if (await isAccountBlocked()) {
       showAccessGate(
         "Konto zablokowane",
         "Konto zablokowane — skontaktuj się z administratorem.",
@@ -1437,7 +1429,7 @@ async function startAuthenticatedApp() {
   }
   let blocked;
   try {
-    blocked = await isAccountBlocked(data.session.user);
+    blocked = await isAccountBlocked();
   } catch (error) {
     console.error("Nie udało się potwierdzić statusu konta:", error);
     showAccessGate(

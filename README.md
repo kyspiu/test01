@@ -6,29 +6,44 @@ Aplikacja nie zawiera obecnie zakupu ani informacji o płatnościach/subskrypcji
 
 Aplikacja statyczna jest hostowana w GitHub Pages. Opublikowanie zmian na skonfigurowanej gałęzi Pages aktualizuje witrynę. Supabase nadal obsługuje uwierzytelnianie i dane użytkowników.
 
-## Ręczne blokowanie konta
+## Ręczne zarządzanie dostępem do kont
 
-Blokada jest ręczna i nie jest automatycznie powiązana z płatnościami ani Stripe. Przed opublikowaniem frontendu administrator musi zastosować migrację `supabase/migrations/20261108140000_account_access_lock.sql` w projekcie Supabase. Flaga `public.account_access.is_blocked` blokuje dostęp do aplikacji oraz do własnych rekordów i plików audio przez RLS; nie usuwa konta, lokalnych danych ani danych w Supabase. Użytkownik może nadal wylogować się z ekranu blokady.
+Dostęp jest zarządzany ręcznie przez administratora i nie jest automatycznie powiązany z płatnościami ani Stripe. Przed opublikowaniem frontendu administrator musi zastosować migrację `supabase/migrations/20261108140000_account_access_lock.sql` w projekcie Supabase: Dashboard → **SQL Editor** → wklej zawartość pliku i uruchom ją jako administrator projektu. Migracja tworzy tabelę dostępu, funkcje administracyjne i RLS blokujące odczyt/zapis danych oraz audio po ręcznej blokadzie lub wygaśnięciu terminu.
 
-W Supabase Dashboard otwórz **SQL Editor**, zastąp `UUID_KONTA` dokładnym UUID użytkownika z **Authentication → Users** i uruchom:
+Tabela `public.account_access` przechowuje UUID z `auth.users` jako klucz wewnętrzny; funkcje administratora rozwiązują email na UUID przy każdym wywołaniu. Zmiana emaila nie zmienia właściciela danych. Zwykli użytkownicy mogą odczytać wyłącznie własny status; nie mogą zmieniać tabeli ani uruchamiać funkcji administratora. Funkcje są dostępne dla `service_role` i administratora projektu w SQL Editor. Nie umieszczaj klucza `service_role` we frontendzie.
 
-```sql
-insert into public.account_access (user_id, is_blocked, reason)
-values ('UUID_KONTA'::uuid, true, 'Brak płatności')
-on conflict (user_id) do update
-set is_blocked = excluded.is_blocked,
-    reason = excluded.reason,
-    updated_at = now();
-```
-
-Aby odblokować konto, uruchom:
+W SQL Editor uruchom, podając email i liczbę dni, aby nadać lub przedłużyć dostęp:
 
 ```sql
-update public.account_access
-set is_blocked = false,
-    reason = null,
-    updated_at = now()
-where user_id = 'UUID_KONTA'::uuid;
+select public.extend_account_access('uzytkownik@example.com', 365);
 ```
 
-Oba polecenia zmieniają wyłącznie flagę dostępu i powód; nie kasują użytkownika, zdań, nagrań ani innych danych.
+Wynik to nowy `access_until`. Dni są dodawane od późniejszej z dat: aktualnego `access_until` lub `now()`; przedłużenie nie przepada, jeśli nastąpi przed wygaśnięciem. Po wygaśnięciu dostęp jest blokowany dynamicznie względem czasu w bazie — bez codziennego zadania cron. Brak rekordu albo `access_until IS NULL` oznacza dostęp bezterminowy, dopóki administrator nie nada terminu lub nie zablokuje konta.
+
+Pozostałe dni (z zaokrągleniem w górę do najbliższego dnia) można sprawdzić w dowolnym momencie; wynik jest wyliczany z `now()`, a nie zapisywany ani aktualizowany przez cron:
+
+```sql
+select auth_user.email,
+       account_access.access_until,
+       greatest(
+           ceil(extract(epoch from (account_access.access_until - now())) / 86400),
+           0
+       )::integer as remaining_days
+from auth.users as auth_user
+join public.account_access as account_access on account_access.user_id = auth_user.id
+where lower(auth_user.email) = lower('uzytkownik@example.com');
+```
+
+Aby natychmiast zablokować konto (niezależnie od terminu):
+
+```sql
+select public.block_account_access('uzytkownik@example.com', 'Brak płatności');
+```
+
+Aby zdjąć ręczną blokadę, pozostawiając pierwotny termin ważności:
+
+```sql
+select public.unblock_account_access('uzytkownik@example.com');
+```
+
+Zdjęcie ręcznej blokady nie przywróci dostępu, jeśli `access_until` już minął. W takiej sytuacji najpierw dodaj dni przez `extend_account_access`. Blokowanie, wygasanie i przedłużanie nie kasują konta, zdań, lokalnego `localStorage`, nagrań ani innych danych. Nie mogą jednak cofnąć kopii danych wcześniej pobranych na urządzenie użytkownika.
