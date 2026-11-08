@@ -18,7 +18,7 @@
             <span id="accountEmail"></span>
             <button id="signOutButton" type="button">Wyloguj</button>
         </div>
-        <header class="sentence-composer" id="sentenceComposer" aria-label="Dodaj zdanie">
+        <header class="app-header">
             <div class="app-heading">
                 <div>
                     <p class="eyebrow">Mówik</p>
@@ -26,14 +26,6 @@
                 </div>
                 <span class="app-mark" aria-hidden="true">✦</span>
             </div>
-            <div class="sentence-input-row" id="speechDisplay">
-                <input id="sentenceInput" type="text" maxlength="80" placeholder="dodaj zdanie" aria-label="Dodaj zdanie do listy" />
-                <button id="btnAddSentence" class="composer-button add-button" type="button" aria-label="Dodaj zdanie">✓</button>
-            </div>
-            <label class="special-sentence-toggle">
-                <input id="specialSentenceInput" type="checkbox" />
-                <span>Zdanie specjalne</span>
-            </label>
         </header>
 
         <section class="quick-responses" id="quickResponses" aria-label="Szybkie odpowiedzi">
@@ -64,6 +56,14 @@
             <div class="list-heading">
                 <h2 id="sentenceHeading">Zdania</h2>
                 <span id="sentenceCount" class="sentence-count" aria-live="polite"></span>
+            </div>
+            <div class="reaction-composer sentence-list-composer" id="sentenceComposer">
+                <input id="sentenceInput" type="text" maxlength="80" placeholder="dodaj zdanie" aria-label="Dodaj zdanie do listy" />
+                <button id="btnAddSentence" class="composer-button add-button" type="button" aria-label="Dodaj zdanie">Dodaj</button>
+                <label class="special-sentence-toggle">
+                    <input id="specialSentenceInput" type="checkbox" />
+                    <span>Zdanie specjalne</span>
+                </label>
             </div>
             <div class="sentence-list" id="sentenceList" aria-live="polite"></div>
             <p id="appStatus" class="app-status" role="status" aria-live="polite"></p>
