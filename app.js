@@ -50,8 +50,6 @@ const scrollShortcutLinks = document.getElementById("scrollShortcutLinks");
 const appShell = document.getElementById("appShell");
 const accountEmail = document.getElementById("accountEmail");
 const signOutButton = document.getElementById("signOutButton");
-const subscriptionStatus = document.getElementById("subscriptionStatus");
-const startSubscriptionCheckout = document.getElementById("startSubscriptionCheckout");
 
 function getScopedStorageKey(storageKey) {
   if (!currentUser) {
@@ -1206,81 +1204,7 @@ async function initializeUser(user) {
   renderDateList();
   renderQuickResponses();
   await loadItemsFromSupabase();
-  await loadSubscriptionStatus();
 }
-
-function getSubscriptionStatusLabel(subscription) {
-  const labels = {
-    active: "Subskrypcja aktywna.",
-    trialing: "Subskrypcja aktywna w okresie próbnym.",
-    past_due: "Płatność wymaga uwagi.",
-    unpaid: "Płatność nie została uregulowana.",
-    paused: "Subskrypcja jest wstrzymana.",
-    canceled: "Subskrypcja została anulowana.",
-    incomplete: "Płatność subskrypcji jest nieukończona.",
-    incomplete_expired: "Nieukończona subskrypcja wygasła."
-  };
-  const label = labels[subscription.status] || "Nie można odczytać statusu subskrypcji.";
-  if (!subscription.current_period_end) return label;
-
-  const endDate = new Date(subscription.current_period_end);
-  if (Number.isNaN(endDate.getTime())) return label;
-  return `${label} Koniec bieżącego okresu: ${endDate.toLocaleDateString("pl-PL")}.`;
-}
-
-async function loadSubscriptionStatus() {
-  subscriptionStatus.textContent = "Sprawdzam status subskrypcji…";
-  const { data, error } = await supabaseClient
-    .from("stripe_subscriptions")
-    .select("status, current_period_end")
-    .eq("user_id", currentUser.id)
-    .maybeSingle();
-
-  if (error) {
-    console.error("Nie udało się pobrać statusu subskrypcji:", error);
-    subscriptionStatus.textContent = "Nie udało się sprawdzić statusu subskrypcji.";
-    return;
-  }
-
-  if (data) {
-    subscriptionStatus.textContent = getSubscriptionStatusLabel(data);
-  } else if (new URLSearchParams(window.location.search).get("subscription") === "success") {
-    subscriptionStatus.textContent =
-      "Stripe zakończył proces. Czekam na potwierdzenie webhooka; odśwież stronę za chwilę.";
-  } else if (new URLSearchParams(window.location.search).get("subscription") === "cancelled") {
-    subscriptionStatus.textContent = "Płatność została anulowana. Nie utworzono aktywnej subskrypcji.";
-  } else {
-    subscriptionStatus.textContent = "Brak aktywnej subskrypcji.";
-  }
-  startSubscriptionCheckout.disabled = Boolean(
-    data && !["canceled", "incomplete_expired"].includes(data.status)
-  );
-  startSubscriptionCheckout.textContent = startSubscriptionCheckout.disabled
-    ? "Subskrypcja już istnieje"
-    : "Kup licencję (test)";
-}
-
-startSubscriptionCheckout.addEventListener("click", async () => {
-  startSubscriptionCheckout.disabled = true;
-  subscriptionStatus.textContent = "Przygotowuję bezpieczną płatność…";
-  try {
-    const { data, error } = await supabaseClient.functions.invoke("create-checkout-session");
-    if (error) throw error;
-    if (!data || typeof data.url !== "string") {
-      throw new Error("Serwer nie zwrócił adresu płatności.");
-    }
-
-    const checkoutUrl = new URL(data.url);
-    if (checkoutUrl.protocol !== "https:" || checkoutUrl.hostname !== "checkout.stripe.com") {
-      throw new Error("Otrzymano nieprawidłowy adres płatności.");
-    }
-    window.location.assign(checkoutUrl.toString());
-  } catch (error) {
-    console.error("Nie udało się rozpocząć subskrypcji:", error);
-    subscriptionStatus.textContent = "Nie udało się rozpocząć płatności. Spróbuj ponownie.";
-    startSubscriptionCheckout.disabled = false;
-  }
-});
 
 async function startAuthenticatedApp() {
   if (!supabaseClient) {
