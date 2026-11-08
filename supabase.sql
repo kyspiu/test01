@@ -44,6 +44,38 @@ alter table public.sentence_items add column if not exists user_id uuid referenc
 alter table public.sentence_items alter column user_id set default auth.uid();
 alter table public.sentence_items add column if not exists special_words jsonb;
 
+create table if not exists public.account_access (
+    user_id uuid primary key references auth.users(id) on delete cascade,
+    is_blocked boolean not null default false,
+    reason text,
+    updated_at timestamptz not null default now()
+);
+
+alter table public.account_access enable row level security;
+revoke all on public.account_access from public, anon, authenticated;
+grant select on public.account_access to authenticated;
+
+drop policy if exists "users read own account access" on public.account_access;
+create policy "users read own account access" on public.account_access
+    for select to authenticated
+    using (user_id = (select auth.uid()));
+
+create or replace function public.current_user_is_blocked()
+returns boolean
+language sql
+security definer
+set search_path = ''
+as $$
+    select coalesce((
+        select access_row.is_blocked
+        from public.account_access as access_row
+        where access_row.user_id = (select auth.uid())
+    ), false);
+$$;
+
+revoke all on function public.current_user_is_blocked() from public, anon;
+grant execute on function public.current_user_is_blocked() to authenticated;
+
 create table if not exists public.stripe_subscriptions (
     user_id uuid primary key references auth.users(id) on delete cascade,
     stripe_customer_id text unique,
@@ -151,10 +183,12 @@ create policy "users manage own categories" on public.categories
     for all to authenticated
     using (
         user_id = (select auth.uid())
+        and not public.current_user_is_blocked()
         and (parent_id is null or public.user_owns_category(parent_id))
     )
     with check (
         user_id = (select auth.uid())
+        and not public.current_user_is_blocked()
         and (parent_id is null or public.user_owns_category(parent_id))
     );
 
@@ -167,10 +201,12 @@ create policy "users manage own words" on public.words
     for all to authenticated
     using (
         user_id = (select auth.uid())
+        and not public.current_user_is_blocked()
         and public.user_owns_category(category_id)
     )
     with check (
         user_id = (select auth.uid())
+        and not public.current_user_is_blocked()
         and public.user_owns_category(category_id)
     );
 
@@ -181,8 +217,14 @@ drop policy if exists "public delete sentence_items" on public.sentence_items;
 drop policy if exists "users manage own sentence items" on public.sentence_items;
 create policy "users manage own sentence items" on public.sentence_items
     for all to authenticated
-    using (user_id = (select auth.uid()))
-    with check (user_id = (select auth.uid()));
+    using (
+        user_id = (select auth.uid())
+        and not public.current_user_is_blocked()
+    )
+    with check (
+        user_id = (select auth.uid())
+        and not public.current_user_is_blocked()
+    );
 
 insert into storage.buckets (id, name, public)
 values ('word-audio', 'word-audio', false)
@@ -210,6 +252,7 @@ create policy "users read own audio" on storage.objects
     using (
         bucket_id in ('word-audio', 'sentence-audio')
         and (storage.foldername(name))[1] = (select auth.uid())::text
+        and not public.current_user_is_blocked()
     );
 
 create policy "users upload own audio" on storage.objects
@@ -217,6 +260,7 @@ create policy "users upload own audio" on storage.objects
     with check (
         bucket_id in ('word-audio', 'sentence-audio')
         and (storage.foldername(name))[1] = (select auth.uid())::text
+        and not public.current_user_is_blocked()
     );
 
 create policy "users update own audio" on storage.objects
@@ -224,10 +268,12 @@ create policy "users update own audio" on storage.objects
     using (
         bucket_id in ('word-audio', 'sentence-audio')
         and (storage.foldername(name))[1] = (select auth.uid())::text
+        and not public.current_user_is_blocked()
     )
     with check (
         bucket_id in ('word-audio', 'sentence-audio')
         and (storage.foldername(name))[1] = (select auth.uid())::text
+        and not public.current_user_is_blocked()
     );
 
 create policy "users delete own audio" on storage.objects
@@ -235,4 +281,5 @@ create policy "users delete own audio" on storage.objects
     using (
         bucket_id in ('word-audio', 'sentence-audio')
         and (storage.foldername(name))[1] = (select auth.uid())::text
+        and not public.current_user_is_blocked()
     );

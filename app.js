@@ -20,6 +20,7 @@ let currentUser = null;
 let activeRecording = null;
 let activeSentenceId = null;
 let recordingRequestPending = false;
+let accessCheckPending = false;
 let editingItemId = null;
 const expandedCollectionActionsIds = new Set();
 let openSpecialSentenceId = null;
@@ -56,8 +57,14 @@ const scrollShortcuts = document.querySelector(".scroll-shortcuts");
 const scrollShortcutsToggle = document.getElementById("scrollShortcutsToggle");
 const scrollShortcutLinks = document.getElementById("scrollShortcutLinks");
 const appShell = document.getElementById("appShell");
+const accessGate = document.getElementById("accessGate");
+const accessHeading = document.getElementById("accessHeading");
+const accessMessage = document.getElementById("accessMessage");
+const accessStatus = document.getElementById("accessStatus");
 const accountEmail = document.getElementById("accountEmail");
 const signOutButton = document.getElementById("signOutButton");
+const accessSignOutButton = document.getElementById("accessSignOutButton");
+const signOutButtons = [signOutButton, accessSignOutButton];
 
 function getScopedStorageKey(storageKey) {
   if (!currentUser) {
@@ -167,6 +174,25 @@ function getPersistedItem(item) {
 
 function showStatus(message) {
   appStatus.textContent = message;
+}
+
+function showAccessGate(heading, message, canSignOut = false) {
+  appShell.hidden = true;
+  accessGate.hidden = false;
+  accessHeading.textContent = heading;
+  accessMessage.textContent = message;
+  accessStatus.textContent = "";
+  accessSignOutButton.hidden = !canSignOut;
+}
+
+function createRecordingIndicator(label) {
+  const indicator = document.createElement("span");
+  indicator.className = "recorded-indicator";
+  indicator.textContent = "✓";
+  indicator.setAttribute("role", "img");
+  indicator.setAttribute("aria-label", label);
+  indicator.title = label;
+  return indicator;
 }
 
 function getItemKind(id) {
@@ -438,12 +464,25 @@ function renderQuickResponses() {
     const recordButton = container.querySelector(".quick-response-record");
     const status = container.querySelector(".quick-response-status");
     const isRecording = activeSentenceId === response.id;
+    const hasRecording = Boolean(response.audioUrl && !isRecording);
 
     playButton.setAttribute("aria-label", `Odtwórz ${response.text}`);
     playButton.title = response.audioUrl ? `Odtwórz ${response.text}` : "Najpierw nagraj odpowiedź";
     recordButton.textContent = isRecording ? "Zatrzymaj" : "Nagraj";
     recordButton.setAttribute("aria-label", `${isRecording ? "Zatrzymaj nagrywanie" : "Nagraj"} ${response.text}`);
-    status.textContent = response.audioUrl && !isRecording ? "✓ Nagrane" : "";
+    status.textContent = hasRecording ? "✓" : "";
+    status.classList.toggle("recorded-indicator", hasRecording);
+    container.classList.toggle("has-recording", hasRecording);
+    if (hasRecording) {
+      const label = `Nagrana szybka odpowiedź: ${response.text}`;
+      status.setAttribute("role", "img");
+      status.setAttribute("aria-label", label);
+      status.title = label;
+    } else {
+      status.removeAttribute("role");
+      status.removeAttribute("aria-label");
+      status.removeAttribute("title");
+    }
   });
 }
 
@@ -589,10 +628,8 @@ function renderCollectionList(items, container, config) {
     }
 
     if (item.audioUrl && !isRecording && !isEditing) {
-      const recordedBadge = document.createElement("span");
-      recordedBadge.className = "reaction-recorded";
-      recordedBadge.textContent = "✓ Nagrane";
-      card.appendChild(recordedBadge);
+      card.classList.add("has-recording");
+      card.appendChild(createRecordingIndicator(`Nagranie reakcji: ${item.text}`));
     }
 
     const controls = document.createElement("div");
@@ -759,11 +796,8 @@ function renderSentenceList() {
       }
 
       if (sentence.audioUrl && activeSentenceId !== sentence.id) {
-        const recordedBadge = document.createElement("span");
-        recordedBadge.className = "sentence-recorded";
-        recordedBadge.textContent = "✓ Nagrane";
-        recordedBadge.setAttribute("aria-label", "Zdanie ma nagranie");
-        content.appendChild(recordedBadge);
+        row.classList.add("has-recording");
+        row.appendChild(createRecordingIndicator(`Nagranie zdania: ${sentence.text}`));
       }
     }
 
@@ -960,10 +994,8 @@ function renderSpecialWord(sentence, word) {
   card.appendChild(actions);
 
   if (word.audioUrl && !isRecording && !isEditing) {
-    const badge = document.createElement("span");
-    badge.className = "special-word-recorded";
-    badge.textContent = "✓ Nagrane";
-    card.appendChild(badge);
+    card.classList.add("has-recording");
+    card.appendChild(createRecordingIndicator(`Nagranie słowa: ${word.text}`));
   }
   return card;
 }
@@ -1340,10 +1372,52 @@ async function initializeUser(user) {
   await initializeDefaultReactions();
 }
 
+async function isAccountBlocked(user) {
+  const { data, error } = await supabaseClient
+    .from("account_access")
+    .select("is_blocked")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (error) throw error;
+  if (data === null) return false;
+  if (!data || typeof data !== "object") {
+    throw new Error("Status blokady konta jest niedostępny.");
+  }
+  if (typeof data.is_blocked !== "boolean") {
+    throw new Error("Status blokady konta ma nieprawidłowy format.");
+  }
+  return data.is_blocked;
+}
+
+async function recheckAccountAccess() {
+  if (!currentUser || accessCheckPending) return;
+  accessCheckPending = true;
+  try {
+    if (await isAccountBlocked(currentUser)) {
+      showAccessGate(
+        "Konto zablokowane",
+        "Konto zablokowane — skontaktuj się z administratorem.",
+        true
+      );
+    }
+  } catch (error) {
+    console.error("Nie udało się potwierdzić statusu konta:", error);
+    showAccessGate(
+      "Nie można potwierdzić statusu konta",
+      "Aplikacja pozostaje zablokowana, ponieważ nie udało się odczytać statusu konta. Skontaktuj się z administratorem.",
+      true
+    );
+  } finally {
+    accessCheckPending = false;
+  }
+}
+
 async function startAuthenticatedApp() {
   if (!supabaseClient) {
-    appShell.hidden = false;
-    showStatus("Nie można połączyć z usługą danych. Odśwież stronę lub skontaktuj się z administratorem.");
+    showAccessGate(
+      "Nie można potwierdzić statusu konta",
+      "Nie można połączyć z usługą danych. Aplikacja pozostaje zablokowana. Odśwież stronę lub skontaktuj się z administratorem."
+    );
     return;
   }
 
@@ -1361,21 +1435,62 @@ async function startAuthenticatedApp() {
     window.location.replace("login.html");
     return;
   }
+  let blocked;
+  try {
+    blocked = await isAccountBlocked(data.session.user);
+  } catch (error) {
+    console.error("Nie udało się potwierdzić statusu konta:", error);
+    showAccessGate(
+      "Nie można potwierdzić statusu konta",
+      "Aplikacja pozostaje zablokowana, ponieważ nie udało się odczytać statusu konta. Skontaktuj się z administratorem.",
+      true
+    );
+    return;
+  }
+  if (blocked) {
+    showAccessGate(
+      "Konto zablokowane",
+      "Konto zablokowane — skontaktuj się z administratorem.",
+      true
+    );
+    return;
+  }
+  accessGate.hidden = true;
   await initializeUser(data.session.user);
 }
 
-signOutButton.addEventListener("click", async () => {
-  signOutButton.disabled = true;
+async function signOut() {
+  signOutButtons.forEach((signOutButtonElement) => {
+    signOutButtonElement.disabled = true;
+  });
   try {
     const { error } = await supabaseClient.auth.signOut();
     if (error) throw error;
     window.location.replace("login.html");
   } catch (error) {
     console.error("Nie udało się wylogować:", error);
-    showStatus("Nie udało się wylogować. Spróbuj ponownie.");
-    signOutButton.disabled = false;
+    if (!accessGate.hidden) {
+      accessStatus.textContent = "Nie udało się wylogować. Spróbuj ponownie.";
+    } else {
+      showStatus("Nie udało się wylogować. Spróbuj ponownie.");
+    }
+    signOutButtons.forEach((signOutButtonElement) => {
+      signOutButtonElement.disabled = false;
+    });
+  }
+}
+
+signOutButtons.forEach((button) => {
+  button.addEventListener("click", signOut);
+});
+
+window.addEventListener("focus", recheckAccountAccess);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    recheckAccountAccess();
   }
 });
+window.setInterval(recheckAccountAccess, 60_000);
 
 scrollShortcutsToggle.addEventListener("click", () => {
   const isCollapsed = scrollShortcuts.classList.toggle("is-collapsed");
@@ -1389,6 +1504,9 @@ scrollShortcutsToggle.addEventListener("click", () => {
 
 startAuthenticatedApp().catch((error) => {
   console.error("Nie udało się uruchomić aplikacji:", error);
-  appShell.hidden = false;
-  showStatus("Nie udało się uruchomić aplikacji. Odśwież stronę i spróbuj ponownie.");
+  showAccessGate(
+    "Nie można potwierdzić statusu konta",
+    "Aplikacja pozostaje zablokowana. Odśwież stronę lub skontaktuj się z administratorem.",
+    Boolean(currentUser)
+  );
 });

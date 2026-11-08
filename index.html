@@ -12,6 +12,13 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
 </head>
 <body>
+    <section id="accessGate" class="access-gate" aria-labelledby="accessHeading">
+        <p class="eyebrow">Mówik</p>
+        <h1 id="accessHeading">Sprawdzanie dostępu</h1>
+        <p id="accessMessage" aria-live="polite">Sprawdzamy status konta przed załadowaniem danych.</p>
+        <p id="accessStatus" class="access-status" role="status" aria-live="polite"></p>
+        <button id="accessSignOutButton" type="button" hidden>Wyloguj</button>
+    </section>
     <div id="appShell" hidden>
     <div class="container">
         <div class="account-toolbar">
