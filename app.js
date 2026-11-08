@@ -1,6 +1,12 @@
 const STORAGE_KEY = "mowik-sentences";
 const REACTION_STORAGE_KEY = "mowik-reactions";
 const REACTION_ID_PREFIX = "__mowik_reaction__";
+const REACTION_DEFAULTS_MIGRATION_KEY = "mowik-reaction-defaults-v1";
+const DEFAULT_REACTIONS = [
+  { key: "dobrze", text: "Dobrze" },
+  { key: "srednio", text: "Średnio" },
+  { key: "zle", text: "Źle" }
+];
 const NUMBER_STORAGE_KEY = "mowik-numbers";
 const NUMBER_ID_PREFIX = "__mowik_number__";
 const DATE_STORAGE_KEY = "mowik-dates";
@@ -484,6 +490,44 @@ function renderDateList() {
     genitive: "daty",
     emptyText: "Brak dat"
   });
+}
+
+async function initializeDefaultReactions() {
+  const migrationKey = getScopedStorageKey(REACTION_DEFAULTS_MIGRATION_KEY);
+  if (localStorage.getItem(migrationKey) === "true") {
+    return;
+  }
+
+  const addedReactions = [];
+  DEFAULT_REACTIONS.forEach((reaction) => {
+    const alreadyExists = state.reactionList.some((item) =>
+      item.text.toLocaleLowerCase("pl-PL") === reaction.text.toLocaleLowerCase("pl-PL"));
+    if (!alreadyExists) {
+      const item = {
+        id: `${REACTION_ID_PREFIX}${currentUser.id}_default_${reaction.key}`,
+        text: reaction.text,
+        audioUrl: ""
+      };
+      addedReactions.push(item);
+    }
+  });
+
+  if (addedReactions.length > 0) {
+    state.reactionList = [...addedReactions, ...state.reactionList];
+    saveReactionList();
+    renderReactionList();
+  }
+
+  const syncResults = await Promise.all(addedReactions.map(upsertItemInSupabase));
+  if (syncResults.every(Boolean)) {
+    try {
+      localStorage.setItem(migrationKey, "true");
+    } catch (error) {
+      console.error("Nie udało się zapisać statusu domyślnych reakcji:", error);
+    }
+  } else {
+    showStatus("Dodano domyślne reakcje na tym urządzeniu, ale nie udało się ich zsynchronizować z serwerem.");
+  }
 }
 
 function renderCollectionList(items, container, config) {
@@ -1204,6 +1248,7 @@ async function initializeUser(user) {
   renderDateList();
   renderQuickResponses();
   await loadItemsFromSupabase();
+  await initializeDefaultReactions();
 }
 
 async function startAuthenticatedApp() {
