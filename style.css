@@ -1086,6 +1086,11 @@ main {
         padding-left: 0.65rem;
     }
 
+    #reactions .reaction-play {
+        padding-left: 0.2rem;
+        font-size: 0.9rem;
+    }
+
     .reaction-action,
     .reaction-actions-toggle {
         min-height: 2.75rem;
