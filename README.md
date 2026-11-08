@@ -8,7 +8,7 @@ Aplikacja statyczna jest hostowana w GitHub Pages. Opublikowanie zmian na skonfi
 
 ## Ręczne zarządzanie dostępem do kont
 
-Dostęp jest zarządzany ręcznie przez administratora i nie jest automatycznie powiązany z płatnościami ani Stripe. Przed opublikowaniem frontendu administrator musi zastosować migrację `supabase/migrations/20261108140000_account_access_lock.sql` w projekcie Supabase: Dashboard → **SQL Editor** → wklej zawartość pliku i uruchom ją jako administrator projektu. Migracja tworzy tabelę dostępu, funkcje administracyjne i RLS blokujące odczyt/zapis danych oraz audio po ręcznej blokadzie lub wygaśnięciu terminu.
+Dostęp jest zarządzany ręcznie przez administratora i nie jest automatycznie powiązany z płatnościami ani Stripe. Przed opublikowaniem frontendu administrator musi zastosować w tej kolejności migracje `supabase/migrations/20261108140000_account_access_lock.sql` oraz `supabase/migrations/20261108150000_require_account_access_grant.sql` w projekcie Supabase: Dashboard → **SQL Editor** → wklej zawartość każdego pliku osobno i uruchom jako administrator projektu. Pierwsza migracja tworzy tabelę dostępu, funkcje administracyjne i RLS blokujące odczyt/zapis danych oraz audio po ręcznej blokadzie lub wygaśnięciu terminu. Druga wprowadza zasadę, że konto bez wpisu przyznającego dostęp jest domyślnie zablokowane.
 
 Tabela `public.account_access` przechowuje UUID z `auth.users` jako klucz wewnętrzny; funkcje administratora rozwiązują email na UUID przy każdym wywołaniu. Zmiana emaila nie zmienia właściciela danych. Zwykli użytkownicy mogą odczytać wyłącznie własny status; nie mogą zmieniać tabeli ani uruchamiać funkcji administratora. Funkcje są dostępne dla `service_role` i administratora projektu w SQL Editor. Nie umieszczaj klucza `service_role` we frontendzie.
 
@@ -18,7 +18,7 @@ W SQL Editor uruchom, podając email i liczbę dni, aby nadać lub przedłużyć
 select public.extend_account_access('uzytkownik@example.com', 365);
 ```
 
-Wynik to nowy `access_until`. Dni są dodawane od późniejszej z dat: aktualnego `access_until` lub `now()`; przedłużenie nie przepada, jeśli nastąpi przed wygaśnięciem. Po wygaśnięciu dostęp jest blokowany dynamicznie względem czasu w bazie — bez codziennego zadania cron. Brak rekordu albo `access_until IS NULL` oznacza dostęp bezterminowy, dopóki administrator nie nada terminu lub nie zablokuje konta.
+Wynik to nowy `access_until`. Dni są dodawane od późniejszej z dat: aktualnego `access_until` lub `now()`; przedłużenie nie przepada, jeśli nastąpi przed wygaśnięciem. Po wygaśnięciu dostęp jest blokowany dynamicznie względem czasu w bazie — bez codziennego zadania cron. Brak wiersza w `account_access` oznacza blokadę do czasu przyznania dostępu. Wiersz z `is_blocked = false` i `access_until IS NULL` oznacza dostęp bezterminowy; standardowo używaj `extend_account_access`, aby przyznać dostęp na konkretną liczbę dni.
 
 Pozostałe dni (z zaokrągleniem w górę do najbliższego dnia) można sprawdzić w dowolnym momencie; wynik jest wyliczany z `now()`, a nie zapisywany ani aktualizowany przez cron:
 
