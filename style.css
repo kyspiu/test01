@@ -811,10 +811,39 @@ h2 {
     font: inherit;
 }
 
+.reaction-card-controls {
+    display: grid;
+    gap: 0.3rem;
+}
+
+.reaction-actions-toggle {
+    justify-self: end;
+    min-width: 2.75rem;
+    min-height: 2.5rem;
+    padding: 0.1rem 0.35rem 0.35rem;
+    border: 1px solid var(--ui-border);
+    border-radius: 0.5rem;
+    background: #fffdf9;
+    color: var(--ui-ink);
+    font: inherit;
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.reaction-actions-toggle[aria-expanded="true"] {
+    background: linear-gradient(180deg, #edf7e9 0%, #dfeee0 100%);
+}
+
 .reaction-actions {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.15rem;
+}
+
+.reaction-actions[hidden] {
+    display: none;
 }
 
 .reaction-action {
@@ -851,6 +880,7 @@ h2 {
 }
 
 .reaction-action:focus-visible,
+.reaction-actions-toggle:focus-visible,
 .reaction-play:focus-visible,
 .reaction-edit-input:focus-visible,
 .reaction-composer input:focus-visible {
@@ -1050,7 +1080,8 @@ main {
         padding-left: 0.65rem;
     }
 
-    .reaction-action {
+    .reaction-action,
+    .reaction-actions-toggle {
         min-height: 2.75rem;
         font-size: 0.9rem;
     }

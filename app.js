@@ -21,6 +21,7 @@ let activeRecording = null;
 let activeSentenceId = null;
 let recordingRequestPending = false;
 let editingItemId = null;
+const expandedCollectionActionsIds = new Set();
 let openSpecialSentenceId = null;
 let supportsSpecialWords = null;
 
@@ -543,7 +544,7 @@ function renderCollectionList(items, container, config) {
     return;
   }
 
-  items.forEach((item) => {
+  items.forEach((item, index) => {
     const card = document.createElement("article");
     card.className = "reaction-card";
     card.setAttribute("role", "listitem");
@@ -556,6 +557,7 @@ function renderCollectionList(items, container, config) {
 
     const isEditing = editingItemId === item.id;
     const isRecording = activeSentenceId === item.id;
+    const actionsExpanded = expandedCollectionActionsIds.has(item.id);
     let itemInput;
     if (isEditing) {
       itemInput = document.createElement("input");
@@ -593,8 +595,38 @@ function renderCollectionList(items, container, config) {
       card.appendChild(recordedBadge);
     }
 
+    const controls = document.createElement("div");
+    controls.className = "reaction-card-controls";
+
+    const actionsToggle = document.createElement("button");
+    actionsToggle.type = "button";
+    actionsToggle.className = "reaction-actions-toggle";
+    actionsToggle.textContent = "…";
+    actionsToggle.title = `${actionsExpanded ? "Ukryj" : "Pokaż"} akcje: ${item.text}`;
+    actionsToggle.setAttribute("aria-label", actionsToggle.title);
+    actionsToggle.setAttribute("aria-expanded", String(actionsExpanded));
+    const actionsId = `${container.id}-actions-${index}`;
+    actionsToggle.setAttribute("aria-controls", actionsId);
+    actionsToggle.addEventListener("click", () => {
+      const isExpanded = expandedCollectionActionsIds.has(item.id);
+      const nextExpanded = !isExpanded;
+      if (nextExpanded) {
+        expandedCollectionActionsIds.add(item.id);
+      } else {
+        expandedCollectionActionsIds.delete(item.id);
+      }
+      const label = `${nextExpanded ? "Ukryj" : "Pokaż"} akcje: ${item.text}`;
+      actionsToggle.title = label;
+      actionsToggle.setAttribute("aria-label", label);
+      actionsToggle.setAttribute("aria-expanded", String(nextExpanded));
+      actions.hidden = !nextExpanded;
+    });
+    controls.appendChild(actionsToggle);
+
     const actions = document.createElement("div");
     actions.className = "reaction-actions";
+    actions.id = actionsId;
+    actions.hidden = !actionsExpanded;
 
     if (isEditing) {
       const saveButton = createReactionAction("✓", `Zapisz ${config.accusative}`, "edit");
@@ -609,6 +641,7 @@ function renderCollectionList(items, container, config) {
       const editButton = createReactionAction("✎", `Edytuj ${config.accusative}: ${item.text}`, "edit");
       editButton.addEventListener("click", () => {
         editingItemId = item.id;
+        expandedCollectionActionsIds.add(item.id);
         renderCollectionList(items, container, config);
       });
 
@@ -621,6 +654,7 @@ function renderCollectionList(items, container, config) {
           return;
         }
         state[config.stateKey] = state[config.stateKey].filter((listItem) => listItem.id !== item.id);
+        expandedCollectionActionsIds.delete(item.id);
         saveItemLocally(item);
         const deleted = await deleteItemFromSupabase(item.id);
         if (!deleted) {
@@ -631,7 +665,8 @@ function renderCollectionList(items, container, config) {
       actions.append(editButton, recordButton, deleteButton);
     }
 
-    card.appendChild(actions);
+    controls.appendChild(actions);
+    card.appendChild(controls);
     container.appendChild(card);
   });
 }
@@ -1287,6 +1322,7 @@ dateInput.addEventListener("keydown", handleDateInputKeydown);
 
 async function initializeUser(user) {
   currentUser = user;
+  expandedCollectionActionsIds.clear();
   state.sentenceList = loadSentenceList();
   state.reactionList = loadReactionList();
   state.numberList = loadItemList(NUMBER_STORAGE_KEY, "liczby");
