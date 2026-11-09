@@ -47,3 +47,7 @@ select public.unblock_account_access('uzytkownik@example.com');
 ```
 
 Zdjęcie ręcznej blokady nie przywróci dostępu, jeśli `access_until` jest puste lub już minął. W takiej sytuacji dodaj dni przez `extend_account_access`. Blokowanie, wygasanie i przedłużanie nie kasują konta, zdań, lokalnego `localStorage`, nagrań ani innych danych. Nie mogą jednak cofnąć kopii danych wcześniej pobranych na urządzenie użytkownika.
+
+## Powiadomienia o okazjach OLX
+
+Niezależny skrypt do monitorowania publicznych wyników wyszukiwania OLX i wysyłania alertów na Telegram znajduje się w [`olx-notifier/`](olx-notifier/README.md). Wymaga osobnej konfiguracji lokalnej; nie jest częścią aplikacji webowej.
