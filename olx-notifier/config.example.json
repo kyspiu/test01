@@ -1,0 +1,10 @@
+{
+  "search_url": "https://www.olx.pl/oferty/q-karta-graficzna-rtx-3060/",
+  "include_keywords": ["rtx 3060", "karta"],
+  "exclude_keywords": ["komputer", "laptop", "uszkodzona"],
+  "market_price_pln": null,
+  "minimum_discount_percent": 20,
+  "minimum_market_samples": 5,
+  "poll_interval_seconds": 900,
+  "state_file": "olx-notifier-sent.json"
+}
